@@ -4,7 +4,7 @@ const router = express.Router();
 
 // Crear una nueva nota
 router.post("/", async (req, res) => {
-	const { user_id, title, description, color, size, font, is_favorite } = req.body;
+	const { user_id, title, description, color, size, font, is_favorite, category } = req.body;
 
 	// Validaciones
 	if (title.length > 100) {
@@ -13,9 +13,12 @@ router.post("/", async (req, res) => {
 	if (description.length > 250) {
 		return res.status(400).json({ error: "La descripción no debe exceder los 250 caracteres" });
 	}
+	if (category.length > 40) {
+		return res.status(400).json({ error: "La categoría no debe exceder los 40 caracteres" });
+	}
 
 	try {
-		const newNote = await pool.query("INSERT INTO notes (user_id, title, description, color, size, font, is_favorite) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [user_id, title, description, color, size, font, is_favorite]);
+		const newNote = await pool.query("INSERT INTO notes (user_id, title, description, color, size, font, is_favorite, category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *", [user_id, title, description, color, size, font, is_favorite, category]);
 		res.status(201).json(newNote.rows[0]);
 	} catch (error) {
 		console.error(error);
@@ -28,8 +31,7 @@ router.get("/:user_id", async (req, res) => {
 	const { user_id } = req.params;
 
 	try {
-		// Obtener las notas y ordenarlas por favoritos (is_favorite)
-		const notes = await pool.query("SELECT * FROM notes WHERE user_id = $1 ORDER BY is_favorite DESC", [user_id]);
+		const notes = await pool.query("SELECT * FROM notes WHERE user_id = $1", [user_id]);
 		res.status(200).json(notes.rows);
 	} catch (error) {
 		console.error(error);
@@ -40,7 +42,7 @@ router.get("/:user_id", async (req, res) => {
 // Actualizar una nota
 router.put("/:id", async (req, res) => {
 	const { id } = req.params;
-	const { title, description, color, size, font, is_favorite } = req.body; // Quitamos priority
+	const { title, description, color, size, font, is_favorite, category } = req.body;
 
 	// Validaciones
 	if (title.length > 100) {
@@ -49,9 +51,12 @@ router.put("/:id", async (req, res) => {
 	if (description.length > 250) {
 		return res.status(400).json({ error: "La descripción no debe exceder los 250 caracteres" });
 	}
+	if (category.length > 40) {
+		return res.status(400).json({ error: "La categoría no debe exceder los 40 caracteres" });
+	}
 
 	try {
-		const updatedNote = await pool.query("UPDATE notes SET title = $1, description = $2, color = $3, size = $4, font = $5, is_favorite = $6 WHERE id = $7 RETURNING *", [title, description, color, size, font, is_favorite, id]);
+		const updatedNote = await pool.query("UPDATE notes SET title = $1, description = $2, color = $3, size = $4, font = $5, is_favorite = $6, category = $7 WHERE id = $8 RETURNING *", [title, description, color, size, font, is_favorite, category, id]);
 		res.status(200).json(updatedNote.rows[0]);
 	} catch (error) {
 		console.error(error);
@@ -69,6 +74,24 @@ router.delete("/:id", async (req, res) => {
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ error: "Error al eliminar la nota" });
+	}
+});
+
+// Buscar notas por título y user_id utilizando una solicitud POST
+router.post("/search", async (req, res) => {
+	const { user_id, query } = req.body; // Capturamos el user_id y el término de búsqueda
+
+	if (!user_id || !query) {
+		return res.status(400).json({ error: "Faltan user_id o término de búsqueda" });
+	}
+
+	try {
+		// Hacemos la búsqueda solo en las notas del usuario (user_id) y por título
+		const result = await pool.query("SELECT * FROM notes WHERE user_id = $1 AND title ILIKE $2", [user_id, `%${query}%`]);
+		res.status(200).json(result.rows);
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error en la búsqueda" });
 	}
 });
 
