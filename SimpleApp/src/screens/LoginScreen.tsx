@@ -5,7 +5,9 @@ import { StackScreenProps } from "@react-navigation/stack";
 type RootStackParamList = {
 	Login: undefined;
 	Register: undefined;
-	Notes: undefined;
+	AllNotes: undefined;
+	FavoriteNotes: undefined;
+	UserProfile: undefined;
 };
 
 type Props = StackScreenProps<RootStackParamList, "Login">;
@@ -33,7 +35,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 			if (response.ok) {
 				const data = await response.json();
 				// Si el login es exitoso, navega a la pantalla de Notas
-				navigation.navigate("Notes");
+				navigation.navigate("AllNotes");
 			} else {
 				const errorData = await response.json();
 				console.log("Error al iniciar sesión:", errorData); // Muestra detalles del error
