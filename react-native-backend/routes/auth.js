@@ -4,6 +4,20 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const router = express.Router();
 
+// Middleware para autenticar token JWT
+const authenticateToken = (req, res, next) => {
+	const authHeader = req.headers["authorization"];
+	const token = authHeader && authHeader.split(" ")[1];
+
+	if (token == null) return res.status(401).json({ error: "Token no proporcionado" });
+
+	jwt.verify(token, "secreto", (err, user) => {
+		if (err) return res.status(403).json({ error: "Token no válido" });
+		req.user = user;
+		next();
+	});
+};
+
 // Registro de usuarios
 router.post("/register", async (req, res) => {
 	const { first_name, last_name, username, email, password } = req.body;
@@ -14,43 +28,22 @@ router.post("/register", async (req, res) => {
 		return res.status(400).json({ error: "El correo electrónico no es válido" });
 	}
 
-	// Validación de first_name (máximo 40 caracteres)
-	if (first_name.length > 40) {
-		return res.status(400).json({ error: "El nombre no debe exceder 40 caracteres" });
-	}
-
-	// Validación de last_name (máximo 40 caracteres)
-	if (last_name.length > 40) {
-		return res.status(400).json({ error: "El apellido no debe exceder 40 caracteres" });
-	}
-
-	// Validación de username (entre 8 y 40 caracteres)
-	if (username.length < 8 || username.length > 40) {
-		return res.status(400).json({ error: "El nombre de usuario debe tener entre 8 y 40 caracteres" });
-	}
-
-	// Validación de password (entre 8 y 40 caracteres)
-	if (password.length < 8 || password.length > 40) {
-		return res.status(400).json({ error: "La contraseña debe tener entre 8 y 40 caracteres" });
+	// Validaciones adicionales para nombres, username y contraseña...
+	if (first_name.length > 40 || last_name.length > 40 || username.length < 8 || username.length > 40 || password.length < 8 || password.length > 40) {
+		return res.status(400).json({ error: "Los datos ingresados no cumplen con los requisitos" });
 	}
 
 	try {
-		// Verificar si el email ya está registrado
+		// Verificar si el email o username ya está registrado
 		const existingEmail = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-		if (existingEmail.rows.length > 0) {
-			return res.status(400).json({ error: "El correo electrónico ya está registrado" });
-		}
-
-		// Verificar si el username ya está registrado
 		const existingUsername = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-		if (existingUsername.rows.length > 0) {
-			return res.status(400).json({ error: "El nombre de usuario ya está registrado" });
+
+		if (existingEmail.rows.length > 0 || existingUsername.rows.length > 0) {
+			return res.status(400).json({ error: "Correo electrónico o nombre de usuario ya registrado" });
 		}
 
-		// Encriptar la contraseña
+		// Encriptar la contraseña y registrar el usuario
 		const hashedPassword = await bcrypt.hash(password, 10);
-
-		// Insertar nuevo usuario en la base de datos
 		const newUser = await pool.query("INSERT INTO users (first_name, last_name, username, email, password) VALUES ($1, $2, $3, $4, $5) RETURNING *", [first_name, last_name, username, email, hashedPassword]);
 
 		res.status(201).json(newUser.rows[0]);
@@ -67,22 +60,18 @@ router.post("/login", async (req, res) => {
 	try {
 		// Verificar si es un correo o un nombre de usuario
 		let user;
-
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 		if (emailRegex.test(emailOrUsername)) {
-			// Si coincide con el formato de un correo, buscar por email
 			user = await pool.query("SELECT * FROM users WHERE email = $1", [emailOrUsername]);
 		} else {
-			// Si no, buscar por nombre de usuario
 			user = await pool.query("SELECT * FROM users WHERE username = $1", [emailOrUsername]);
 		}
 
-		// Si el usuario no fue encontrado
 		if (user.rows.length === 0) {
 			return res.status(404).json({ error: "Usuario no encontrado" });
 		}
 
-		// Comparar la contraseña
 		const validPassword = await bcrypt.compare(password, user.rows[0].password);
 		if (!validPassword) {
 			return res.status(401).json({ error: "Contraseña incorrecta" });
@@ -94,6 +83,39 @@ router.post("/login", async (req, res) => {
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ error: "Error al iniciar sesión" });
+	}
+});
+
+// Nueva ruta: Obtener datos del perfil del usuario autenticado
+router.get("/profile", authenticateToken, async (req, res) => {
+	try {
+		const user = await pool.query("SELECT first_name, last_name, email, username FROM users WHERE id = $1", [req.user.id]);
+
+		if (user.rows.length === 0) {
+			return res.status(404).json({ error: "Usuario no encontrado" });
+		}
+
+		res.json(user.rows[0]);
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al obtener los datos del perfil" });
+	}
+});
+
+// Nueva ruta: Eliminar cuenta de usuario autenticado
+router.delete("/delete", authenticateToken, async (req, res) => {
+	try {
+		// Eliminar el usuario de la base de datos
+		const result = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [req.user.id]);
+
+		if (result.rows.length === 0) {
+			return res.status(404).json({ error: "Usuario no encontrado" });
+		}
+
+		res.json({ message: "Cuenta eliminada exitosamente" });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: "Error al eliminar la cuenta" });
 	}
 });
 

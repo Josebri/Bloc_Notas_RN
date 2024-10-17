@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { StackScreenProps } from "@react-navigation/stack";
+import { useTheme } from "../context/ThemeContext";
 
 type RootStackParamList = {
 	Login: undefined;
@@ -15,6 +16,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 	const [username, setUsername] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const { isDarkMode } = useTheme();
 
 	const handleRegister = async () => {
 		try {
@@ -43,17 +45,17 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 	};
 
 	return (
-		<View style={styles.container}>
-			<TextInput style={styles.input} placeholder="First Name" value={firstName} onChangeText={setFirstName} />
-			<TextInput style={styles.input} placeholder="Last Name" value={lastName} onChangeText={setLastName} />
-			<TextInput style={styles.input} placeholder="Username" value={username} onChangeText={setUsername} />
-			<TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-			<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="First Name" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={firstName} onChangeText={setFirstName} />
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Last Name" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={lastName} onChangeText={setLastName} />
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Username" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={username} onChangeText={setUsername} />
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Email" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={email} onChangeText={setEmail} keyboardType="email-address" />
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Password" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={password} onChangeText={setPassword} secureTextEntry />
 			<TouchableOpacity style={styles.button} onPress={handleRegister}>
 				<Text style={styles.buttonText}>Register</Text>
 			</TouchableOpacity>
 			<TouchableOpacity onPress={() => navigation.navigate("Login")}>
-				<Text style={styles.backLink}>Back to Login</Text>
+				<Text style={[styles.backLink, { color: isDarkMode ? "#80bfff" : "#3897f0" }]}>Back to Login</Text>
 			</TouchableOpacity>
 		</View>
 	);
@@ -67,7 +69,6 @@ const styles = StyleSheet.create({
 	},
 	input: {
 		height: 50,
-		borderColor: "#ccc",
 		borderWidth: 1,
 		borderRadius: 5,
 		marginBottom: 20,
@@ -85,7 +86,6 @@ const styles = StyleSheet.create({
 	},
 	backLink: {
 		marginTop: 20,
-		color: "#3897f0",
 		textAlign: "center",
 		fontSize: 16,
 	},

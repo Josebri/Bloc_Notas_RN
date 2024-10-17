@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { useTheme } from "../context/ThemeContext"; // Importamos el contexto del tema
 
 const CreateNoteScreen: React.FC = () => {
 	const [title, setTitle] = useState("");
@@ -9,6 +10,8 @@ const CreateNoteScreen: React.FC = () => {
 	const [fontSize, setFontSize] = useState("14");
 	const [fontType, setFontType] = useState("Arial");
 	const [isFavorite, setIsFavorite] = useState(false);
+
+	const { isDarkMode } = useTheme(); // Obtenemos el estado del tema
 
 	const handleCreateNote = async () => {
 		try {
@@ -38,9 +41,9 @@ const CreateNoteScreen: React.FC = () => {
 	};
 
 	return (
-		<View style={styles.container}>
-			<TextInput style={styles.input} placeholder="Title (max 100 chars)" value={title} onChangeText={setTitle} maxLength={100} />
-			<TextInput style={styles.input} placeholder="Description (max 250 chars)" value={description} onChangeText={setDescription} maxLength={250} />
+		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
+			<TextInput style={[styles.input, { backgroundColor: isDarkMode ? "#555" : "#fff", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Title (max 100 chars)" value={title} onChangeText={setTitle} maxLength={100} placeholderTextColor={isDarkMode ? "#aaa" : "#666"} />
+			<TextInput style={[styles.input, { backgroundColor: isDarkMode ? "#555" : "#fff", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Description (max 250 chars)" value={description} onChangeText={setDescription} maxLength={250} placeholderTextColor={isDarkMode ? "#aaa" : "#666"} />
 
 			<Picker selectedValue={color} onValueChange={(itemValue: string) => setColor(itemValue)}>
 				<Picker.Item label="Black" value="black" />

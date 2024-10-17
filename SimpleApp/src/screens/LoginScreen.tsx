@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StackScreenProps } from "@react-navigation/stack";
+import { useTheme } from "../context/ThemeContext";
 
 type RootStackParamList = {
 	Login: undefined;
@@ -15,11 +17,12 @@ type Props = StackScreenProps<RootStackParamList, "Login">;
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
 	const [emailOrUsername, setEmailOrUsername] = useState("");
 	const [password, setPassword] = useState("");
+	const { isDarkMode } = useTheme();
 
 	const handleLogin = async () => {
 		try {
-			const trimmedEmailOrUsername = emailOrUsername.trim(); // Elimina espacios al inicio y al final del username o email
-			const trimmedPassword = password.trim(); // Elimina espacios al inicio y al final de la contraseña
+			const trimmedEmailOrUsername = emailOrUsername.trim();
+			const trimmedPassword = password.trim();
 
 			const response = await fetch("http://192.168.0.114:5000/auth/login", {
 				method: "POST",
@@ -34,26 +37,28 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
 			if (response.ok) {
 				const data = await response.json();
-				// Si el login es exitoso, navega a la pantalla de Notas
+				// Guarda el token en AsyncStorage
+				await AsyncStorage.setItem("token", data.token);
+				// Navega a la pantalla de Notas
 				navigation.navigate("AllNotes");
 			} else {
 				const errorData = await response.json();
-				console.log("Error al iniciar sesión:", errorData); // Muestra detalles del error
+				console.log("Error al iniciar sesión:", errorData);
 			}
 		} catch (error) {
-			console.log("Error de red", error); // Captura errores de red
+			console.log("Error de red", error);
 		}
 	};
 
 	return (
-		<View style={styles.container}>
-			<TextInput style={styles.input} placeholder="Username or Email" value={emailOrUsername} onChangeText={setEmailOrUsername} autoCapitalize="none" autoCorrect={false} />
-			<TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Username or Email" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={emailOrUsername} onChangeText={setEmailOrUsername} autoCapitalize="none" autoCorrect={false} />
+			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Password" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
 			<TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
 				<Text style={styles.loginButtonText}>Login</Text>
 			</TouchableOpacity>
 			<TouchableOpacity onPress={() => navigation.navigate("Register")}>
-				<Text style={styles.registerLink}>Go to Register</Text>
+				<Text style={[styles.registerLink, { color: isDarkMode ? "#80bfff" : "#3897f0" }]}>Go to Register</Text>
 			</TouchableOpacity>
 		</View>
 	);
@@ -67,7 +72,6 @@ const styles = StyleSheet.create({
 	},
 	input: {
 		height: 50,
-		borderColor: "#ccc",
 		borderWidth: 1,
 		borderRadius: 5,
 		marginBottom: 20,
@@ -85,7 +89,6 @@ const styles = StyleSheet.create({
 	},
 	registerLink: {
 		marginTop: 20,
-		color: "#3897f0",
 		textAlign: "center",
 		fontSize: 16,
 	},
