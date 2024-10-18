@@ -17,9 +17,11 @@ type Props = StackScreenProps<RootStackParamList, "Login">;
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
 	const [emailOrUsername, setEmailOrUsername] = useState("");
 	const [password, setPassword] = useState("");
+	const [errorMessage, setErrorMessage] = useState<string | null>(null); // Mensaje de error
 	const { isDarkMode } = useTheme();
 
 	const handleLogin = async () => {
+		setErrorMessage(null); // Reiniciar el mensaje de error antes de intentar iniciar sesión
 		try {
 			const trimmedEmailOrUsername = emailOrUsername.trim();
 			const trimmedPassword = password.trim();
@@ -35,25 +37,48 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 				}),
 			});
 
+			const data = await response.json(); // Obtener respuesta del backend
+
 			if (response.ok) {
-				const data = await response.json();
 				// Guarda el token en AsyncStorage
 				await AsyncStorage.setItem("token", data.token);
 				// Navega a la pantalla de Notas
 				navigation.navigate("AllNotes");
 			} else {
-				const errorData = await response.json();
-				console.log("Error al iniciar sesión:", errorData);
+				// Mostrar el mensaje de error específico
+				setErrorMessage(data.error || "Error al iniciar sesión");
 			}
 		} catch (error) {
 			console.log("Error de red", error);
+			setErrorMessage("Error de red al intentar iniciar sesión");
 		}
 	};
 
 	return (
 		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
-			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Username or Email" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={emailOrUsername} onChangeText={setEmailOrUsername} autoCapitalize="none" autoCorrect={false} />
-			<TextInput style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]} placeholder="Password" placeholderTextColor={isDarkMode ? "#999" : "#666"} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+			{/* Mostrar mensaje de error */}
+			{errorMessage && <Text style={[styles.errorText, { color: isDarkMode ? "#ff4d4d" : "red" }]}>{errorMessage}</Text>}
+
+			<TextInput
+				style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]}
+				placeholder="Username or Email"
+				placeholderTextColor={isDarkMode ? "#999" : "#666"}
+				value={emailOrUsername}
+				onChangeText={setEmailOrUsername}
+				autoCapitalize="none"
+				autoCorrect={false}
+				maxLength={60} // Límite de caracteres
+			/>
+			<TextInput
+				style={[styles.input, { borderColor: isDarkMode ? "#fff" : "#ccc", color: isDarkMode ? "#fff" : "#000" }]}
+				placeholder="Password"
+				placeholderTextColor={isDarkMode ? "#999" : "#666"}
+				value={password}
+				onChangeText={setPassword}
+				secureTextEntry
+				autoCapitalize="none"
+				maxLength={60} // Límite de caracteres
+			/>
 			<TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
 				<Text style={styles.loginButtonText}>Login</Text>
 			</TouchableOpacity>
@@ -89,6 +114,11 @@ const styles = StyleSheet.create({
 	},
 	registerLink: {
 		marginTop: 20,
+		textAlign: "center",
+		fontSize: 16,
+	},
+	errorText: {
+		marginBottom: 20,
 		textAlign: "center",
 		fontSize: 16,
 	},

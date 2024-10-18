@@ -85,41 +85,49 @@ const UserProfileScreen: React.FC = () => {
 
 	return (
 		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
-			<Text style={[styles.header, { color: isDarkMode ? "#fff" : "#000" }]}>User Profile</Text>
-			{userData ? (
-				<>
-					<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>First Name: {userData.first_name}</Text>
-					<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Last Name: {userData.last_name}</Text>
-					<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Email: {userData.email}</Text>
-					<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Username: {userData.username}</Text>
-				</>
-			) : (
-				<Text>Loading...</Text>
-			)}
+			<View style={styles.profileContainer}>
+				<Text style={[styles.header, { color: isDarkMode ? "#fff" : "#000" }]}>User Profile</Text>
+				{userData ? (
+					<>
+						<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>First Name: {userData.first_name}</Text>
+						<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Last Name: {userData.last_name}</Text>
+						<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Email: {userData.email}</Text>
+						<Text style={[styles.text, { color: isDarkMode ? "#ccc" : "#000" }]}>Username: {userData.username}</Text>
+					</>
+				) : (
+					<Text>Loading...</Text>
+				)}
 
-			{/* Toggle para el modo nocturno */}
-			<View style={styles.switchContainer}>
-				<Text style={{ color: isDarkMode ? "#fff" : "#000" }}>Dark Mode</Text>
-				<Switch value={isDarkMode} onValueChange={toggleTheme} />
+				{/* Toggle para el modo nocturno */}
+				<View style={styles.switchContainer}>
+					<Text style={{ color: isDarkMode ? "#fff" : "#000" }}>Dark Mode</Text>
+					<Switch value={isDarkMode} onValueChange={toggleTheme} />
+				</View>
+
+				<TouchableOpacity style={styles.button} onPress={handleLogout}>
+					<Text style={styles.buttonText}>Logout</Text>
+				</TouchableOpacity>
+
+				{/* Botón para eliminar la cuenta */}
+				<TouchableOpacity style={styles.buttonDelete} onPress={handleDeleteAccount}>
+					<Text style={styles.buttonText}>Delete Account</Text>
+				</TouchableOpacity>
 			</View>
 
-			<TouchableOpacity style={styles.button} onPress={handleLogout}>
-				<Text style={styles.buttonText}>Logout</Text>
-			</TouchableOpacity>
-
-			{/* Botón para eliminar la cuenta */}
-			<TouchableOpacity style={styles.buttonDelete} onPress={handleDeleteAccount}>
-				<Text style={styles.buttonText}>Delete Account</Text>
-			</TouchableOpacity>
-
 			{/* Barra de navegación inferior */}
-			<BottomBar />
+			<View style={styles.bottomBarContainer}>
+				<BottomBar />
+			</View>
 		</View>
 	);
 };
 
 const styles = StyleSheet.create({
 	container: {
+		flex: 1,
+		justifyContent: "space-between", // Asegura que el BottomBar esté al final
+	},
+	profileContainer: {
 		flex: 1,
 		justifyContent: "center",
 		paddingHorizontal: 20,
@@ -132,6 +140,12 @@ const styles = StyleSheet.create({
 	},
 	text: {
 		marginVertical: 5,
+	},
+	switchContainer: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		marginTop: 20,
 	},
 	button: {
 		backgroundColor: "#3498db",
@@ -151,11 +165,8 @@ const styles = StyleSheet.create({
 		color: "#fff",
 		fontSize: 16,
 	},
-	switchContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		marginTop: 20,
+	bottomBarContainer: {
+		alignSelf: "stretch", // Asegura que el BottomBar ocupe todo el ancho de la pantalla
 	},
 });
 

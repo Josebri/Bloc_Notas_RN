@@ -8,7 +8,8 @@ import AllNotesScreen from "./src/screens/AllNotesScreen";
 import FavoriteNotesScreen from "./src/screens/FavoriteNotesScreen";
 import CreateNoteScreen from "./src/screens/CreateNoteScreen";
 import UserProfileScreen from "./src/screens/UserProfileScreen";
-import NoteDetailScreen from "./src/screens/NoteDetailScreen"; // Import the NoteDetailScreen
+import NoteDetailScreen from "./src/screens/NoteDetailScreen";
+import UpdateNoteScreen from "./src/screens/UpdateNoteScreen";
 
 type RootStackParamList = {
 	Login: undefined;
@@ -17,7 +18,8 @@ type RootStackParamList = {
 	FavoriteNotes: undefined;
 	CreateNote: undefined;
 	UserProfile: undefined;
-	NoteDetail: { noteId: string }; // Add the noteId parameter for NoteDetail
+	NoteDetail: { noteId: string };
+	UpdateNote: { noteId: number };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -34,6 +36,7 @@ export default function App() {
 					<Stack.Screen name="CreateNote" component={CreateNoteScreen} options={{ title: "Create Note" }} />
 					<Stack.Screen name="UserProfile" component={UserProfileScreen} />
 					<Stack.Screen name="NoteDetail" component={NoteDetailScreen} options={{ title: "Note Detail" }} />
+					<Stack.Screen name="UpdateNote" component={UpdateNoteScreen} options={{ title: "Update Note" }} />
 				</Stack.Navigator>
 			</NavigationContainer>
 		</ThemeProvider>

@@ -144,14 +144,21 @@ router.delete("/:id", authenticateToken, async (req, res) => {
 
 // Buscar notas por título y user_id utilizando una solicitud POST
 router.post("/search", authenticateToken, async (req, res) => {
-	const { user_id, query } = req.body;
+	const { query, is_favorite } = req.body;
+	const user_id = req.user.id;
 
-	if (!user_id || !query) {
-		return res.status(400).json({ error: "Faltan user_id o término de búsqueda" });
+	if (!query) {
+		return res.status(400).json({ error: "Falta el término de búsqueda" });
 	}
 
 	try {
-		const result = await pool.query("SELECT * FROM notes WHERE user_id = $1 AND title ILIKE $2", [user_id, `%${query}%`]);
+		let result;
+		if (typeof is_favorite !== "undefined") {
+			result = await pool.query("SELECT * FROM notes WHERE user_id = $1 AND title ILIKE $2 AND is_favorite = $3", [user_id, `%${query}%`, is_favorite]);
+		} else {
+			result = await pool.query("SELECT * FROM notes WHERE user_id = $1 AND title ILIKE $2", [user_id, `%${query}%`]);
+		}
+
 		res.status(200).json(result.rows);
 	} catch (error) {
 		res.status(500).json({ error: "Error en la búsqueda" });

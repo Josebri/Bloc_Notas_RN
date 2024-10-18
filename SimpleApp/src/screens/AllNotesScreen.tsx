@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import BottomBar from "../components/BottomBar";
+import SearchBar from "../components/SearchBar";
 import { useTheme } from "../context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation, useRoute } from "@react-navigation/native"; // Importamos useRoute
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../../App";
 import ModalOptions from "react-native-modal";
@@ -14,12 +15,45 @@ type AllNotesScreenNavigationProp = StackNavigationProp<RootStackParamList, "All
 const AllNotesScreen: React.FC = () => {
 	const { isDarkMode } = useTheme();
 	const navigation = useNavigation<AllNotesScreenNavigationProp>();
-	const route = useRoute(); // Obtener la información pasada al navegar
+	const route = useRoute();
 	const [notes, setNotes] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedNote, setSelectedNote] = useState<{ id: number; is_favorite: boolean } | null>(null);
 	const [isModalVisible, setIsModalVisible] = useState(false);
+
+	// Función de búsqueda
+	const handleSearch = async () => {
+		if (searchQuery.trim() === "") {
+			loadNotes();
+			return;
+		}
+
+		try {
+			const token = await AsyncStorage.getItem("token");
+			if (token) {
+				const response = await fetch("http://192.168.0.114:5000/notes/search", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify({ query: searchQuery, is_favorite: false }),
+				});
+
+				if (response.ok) {
+					const result = await response.json();
+					setNotes(result);
+				} else {
+					const errorData = await response.text();
+					setError(`Error en la búsqueda. Detalle: ${errorData}`);
+				}
+			}
+		} catch (error) {
+			setError("Error de red al realizar la búsqueda.");
+		}
+	};
 
 	// Cargar las notas que no son favoritas
 	const loadNotes = async () => {
@@ -52,18 +86,14 @@ const AllNotesScreen: React.FC = () => {
 	};
 
 	useEffect(() => {
-		loadNotes(); // Cargar las notas al montar el componente
+		loadNotes();
 	}, []);
-
-	// Escuchar cambios de navegación (por ejemplo, cuando se crea una nueva nota)
 	useEffect(() => {
 		if (route.params?.newNote) {
-			// Agregar la nueva nota al estado
 			setNotes((prevNotes) => [route.params.newNote, ...prevNotes]);
 		}
 	}, [route.params?.newNote]);
 
-	// Añadir el botón "+" en la barra superior
 	useEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
@@ -106,13 +136,12 @@ const AllNotesScreen: React.FC = () => {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
 					},
-					body: JSON.stringify({ is_favorite: !isFavorite }), // Cambiamos el estado de favorito
+					body: JSON.stringify({ is_favorite: !isFavorite }),
 				});
 
 				if (response.ok) {
-					// Actualizar la lista de notas cuando el estado de favorito cambia
-					loadNotes(); // Recargar las notas para reflejar el cambio de estado
-					hideModal(); // Cerrar el modal después de actualizar
+					loadNotes();
+					hideModal();
 				} else {
 					console.log("Error al cambiar el estado de favorito");
 				}
@@ -122,10 +151,10 @@ const AllNotesScreen: React.FC = () => {
 		}
 	};
 
-	// Mostrar menú de opciones al presionar los tres puntos
+	//Mostrar modal
 	const showModal = (noteId: number, isFavorite: boolean) => {
 		setSelectedNote({ id: noteId, is_favorite: isFavorite });
-		setIsModalVisible(true); // Mostrar el modal
+		setIsModalVisible(true);
 	};
 
 	// Ocultar modal
@@ -133,10 +162,17 @@ const AllNotesScreen: React.FC = () => {
 		setIsModalVisible(false);
 	};
 
-	// Renderizar una nota con los tres puntos
+	// Navegar a la pantalla de editar nota
+	const handleEditNote = (noteId: number) => {
+		navigation.navigate("UpdateNote", { noteId });
+	};
+
 	const renderNote = ({ item }: { item: any }) => (
 		<View style={styles.noteCard}>
-			<Text style={[styles.noteTitle, { color: isDarkMode ? "#fff" : "#000" }]}>{item.title}</Text>
+			{/* Cuando se toca el título, navega al detalle de la nota */}
+			<TouchableOpacity onPress={() => handleEditNote(item.id)}>
+				<Text style={[styles.noteTitle, { color: isDarkMode ? "#fff" : "#000" }]}>{item.title}</Text>
+			</TouchableOpacity>
 
 			{/* Botón de tres puntos para mostrar opciones */}
 			<TouchableOpacity style={styles.moreButton} onPress={() => showModal(item.id, item.is_favorite)}>
@@ -147,6 +183,9 @@ const AllNotesScreen: React.FC = () => {
 
 	return (
 		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
+			{/* Barra de búsqueda */}
+			<SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
+
 			{loading ? <Text style={[styles.text, { color: isDarkMode ? "#fff" : "#000" }]}>Cargando notas...</Text> : error ? <Text style={[styles.text, { color: "red" }]}>{error}</Text> : notes.length > 0 ? <FlatList data={notes} renderItem={renderNote} keyExtractor={(item) => item.id.toString()} /> : <Text style={[styles.text, { color: isDarkMode ? "#fff" : "#000" }]}>No hay notas</Text>}
 
 			<BottomBar />
@@ -154,7 +193,7 @@ const AllNotesScreen: React.FC = () => {
 			{/* Modal para las opciones de la nota */}
 			<ModalOptions isVisible={isModalVisible} onBackdropPress={hideModal}>
 				<View style={styles.modalContent}>
-					<TouchableOpacity onPress={() => navigation.navigate("NoteDetail", { noteId: selectedNote?.id })}>
+					<TouchableOpacity onPress={() => handleEditNote(selectedNote?.id ?? 0)}>
 						<Text style={styles.modalOption}>Editar nota</Text>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => toggleFavorite(selectedNote!.id, selectedNote!.is_favorite)}>

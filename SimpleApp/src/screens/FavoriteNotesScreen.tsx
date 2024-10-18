@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from "react-native";
 import BottomBar from "../components/BottomBar";
 import { useTheme } from "../context/ThemeContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,6 +19,7 @@ const FavoriteNotesScreen: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [selectedNote, setSelectedNote] = useState<{ id: number; is_favorite: boolean } | null>(null);
 	const [isModalVisible, setIsModalVisible] = useState(false);
+	const [searchQuery, setSearchQuery] = useState<string>("");
 
 	// Cargar las notas que son favoritas
 	const loadNotes = async () => {
@@ -54,16 +55,37 @@ const FavoriteNotesScreen: React.FC = () => {
 		loadNotes();
 	}, []);
 
-	// Añadir el botón "+" en la barra superior
-	useEffect(() => {
-		navigation.setOptions({
-			headerRight: () => (
-				<TouchableOpacity onPress={() => navigation.navigate("CreateNote")}>
-					<Icon name="add-outline" size={30} color={isDarkMode ? "#ffcc00" : "#000"} style={styles.addButton} />
-				</TouchableOpacity>
-			),
-		});
-	}, [navigation, isDarkMode]);
+	// Función de búsqueda
+	const handleSearch = async () => {
+		if (searchQuery.trim() === "") {
+			loadNotes(); // Si no hay búsqueda, carga todas las notas favoritas
+			return;
+		}
+
+		try {
+			const token = await AsyncStorage.getItem("token");
+			if (token) {
+				const response = await fetch("http://192.168.0.114:5000/notes/search", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify({ query: searchQuery, is_favorite: true }),
+				});
+
+				if (response.ok) {
+					const result = await response.json();
+					setNotes(result); // Actualiza las notas con los resultados de la búsqueda
+				} else {
+					const errorData = await response.text();
+					setError(`Error en la búsqueda. Detalle: ${errorData}`);
+				}
+			}
+		} catch (error) {
+			setError("Error de red al realizar la búsqueda.");
+		}
+	};
 
 	// Eliminar una nota
 	const deleteNote = async (noteId: number) => {
@@ -122,10 +144,33 @@ const FavoriteNotesScreen: React.FC = () => {
 		setIsModalVisible(false);
 	};
 
+	// Navegar al detalle de la nota
+	const handleNotePress = (noteId: number) => {
+		navigation.navigate("NoteDetail", { noteId });
+	};
+
+	// Navegar a la pantalla de editar nota
+	const handleEditNote = (noteId: number) => {
+		navigation.navigate("UpdateNote", { noteId });
+	};
+
+	useEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<TouchableOpacity onPress={() => navigation.navigate("CreateNote")}>
+					<Icon name="add-outline" size={30} color={isDarkMode ? "#ffcc00" : "#000"} style={styles.addButton} />
+				</TouchableOpacity>
+			),
+		});
+	}, [navigation, isDarkMode]);
+
 	// Renderizar una nota con los tres puntos
 	const renderNote = ({ item }: { item: any }) => (
 		<View style={styles.noteCard}>
-			<Text style={[styles.noteTitle, { color: isDarkMode ? "#fff" : "#000" }]}>{item.title}</Text>
+			{/* Tocar el título de la nota para ver los detalles */}
+			<TouchableOpacity onPress={() => handleNotePress(item.id)}>
+				<Text style={[styles.noteTitle, { color: isDarkMode ? "#fff" : "#000" }]}>{item.title}</Text>
+			</TouchableOpacity>
 
 			{/* Botón de tres puntos para mostrar opciones */}
 			<TouchableOpacity style={styles.moreButton} onPress={() => showModal(item.id, item.is_favorite)}>
@@ -136,13 +181,26 @@ const FavoriteNotesScreen: React.FC = () => {
 
 	return (
 		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>
+			{/* Barra de búsqueda */}
+			<View style={styles.searchContainer}>
+				<Icon name="search-outline" size={20} color="#999" style={styles.searchIcon} />
+				<TextInput
+					placeholder="Buscar notas favoritas..."
+					value={searchQuery}
+					onChangeText={setSearchQuery}
+					onSubmitEditing={handleSearch} // Captura el evento "enter" para realizar la búsqueda
+					style={styles.searchInput}
+				/>
+			</View>
+
+			{/* Listado de notas */}
 			{loading ? <Text style={[styles.text, { color: isDarkMode ? "#fff" : "#000" }]}>Cargando notas favoritas...</Text> : error ? <Text style={[styles.text, { color: "red" }]}>{error}</Text> : notes.length > 0 ? <FlatList data={notes} renderItem={renderNote} keyExtractor={(item) => item.id.toString()} /> : <Text style={[styles.text, { color: isDarkMode ? "#fff" : "#000" }]}>No hay notas favoritas</Text>}
 			<BottomBar />
 
 			{/* Modal para las opciones de la nota */}
 			<ModalOptions isVisible={isModalVisible} onBackdropPress={hideModal}>
 				<View style={styles.modalContent}>
-					<TouchableOpacity onPress={() => navigation.navigate("NoteDetail", { noteId: selectedNote?.id })}>
+					<TouchableOpacity onPress={() => handleEditNote(selectedNote?.id ?? 0)}>
 						<Text style={styles.modalOption}>Editar nota</Text>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={() => toggleFavorite(selectedNote!.id, selectedNote!.is_favorite)}>
@@ -164,6 +222,28 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		justifyContent: "space-between",
+	},
+	searchContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#fff",
+		borderRadius: 8,
+		paddingHorizontal: 10,
+		margin: 10,
+		elevation: 3,
+		shadowColor: "#000",
+		shadowOpacity: 0.1,
+		shadowOffset: { width: 0, height: 2 },
+		shadowRadius: 2,
+	},
+	searchInput: {
+		flex: 1,
+		padding: 10,
+		fontSize: 16,
+		color: "#333",
+	},
+	searchIcon: {
+		marginRight: 10,
 	},
 	text: {
 		fontSize: 18,
