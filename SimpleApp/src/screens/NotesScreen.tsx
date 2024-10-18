@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useTheme } from "../context/ThemeContext"; // Importamos el contexto del tema
+import { useTheme } from "../context/ThemeContext";
 
 const NotesScreen: React.FC = () => {
 	const navigation = useNavigation();
-	const { isDarkMode } = useTheme(); // Obtenemos el estado del tema
+	const { isDarkMode } = useTheme();
 
 	return (
 		<View style={[styles.container, { backgroundColor: isDarkMode ? "#333" : "#fff" }]}>

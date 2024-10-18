@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Switch } from "react-n
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomBar from "../components/BottomBar";
 import { useNavigation } from "@react-navigation/native";
-import { useTheme } from "../context/ThemeContext"; // Importar el contexto del tema
+import { useTheme } from "../context/ThemeContext";
 
 const UserProfileScreen: React.FC = () => {
 	const [userData, setUserData] = useState<{ first_name: string; last_name: string; email: string; username: string } | null>(null);
